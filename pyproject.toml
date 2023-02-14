@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "music-inbox"
+version = "0.1.0"
+description = ""
+authors = ["Mathieu Leplatre <mathieu@leplat.re>"]
+license = "CC-0"
+readme = "README.md"
+packages = [{include = "music_inbox"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiohttp = "^3.8.4"
+beautifulsoup4 = "^4.11.2"
+eyed3 = "^0.9.7"
+
+
+[tool.poetry.scripts]
+music-genres = "music_inbox.genres:main"
+music-folder2genre = "music_inbox.folder2genre:main"
+music-playlist2delete = "music_inbox.playlist2delete:main"
+music-clean = "music_inbox.clean:main"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
