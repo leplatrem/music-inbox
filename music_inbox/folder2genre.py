@@ -5,7 +5,7 @@ import eyed3
 
 
 def main():
-    rootdir = sys.argv[1:]
+    rootdir = sys.argv[1]
 
     audios = []
     for root, dirs, files in os.walk(rootdir):

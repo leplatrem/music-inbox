@@ -7,28 +7,32 @@ import eyed3
 
 
 def main():
-    files = glob.glob(sys.argv[1])
+    renames = []
     errors = []
+    files = glob.glob(sys.argv[1])
     for f in files:
-        print(f)
         folder = os.path.dirname(f)
         basename = os.path.basename(f)
         filename, ext = os.path.splitext(basename)
+
         audiofile = eyed3.load(f)
+        if audiofile is None:
+            raise ValueError(f"{f} has no info")
 
         if audiofile.tag.encoded_by == "Beatport":
             artist = audiofile.tag.artist
             title = audiofile.tag.title
-            filename = artist + " - " + title + ".mp3"
-            os.rename(f, os.path.join(folder, filename))
+            newfilename = artist + " - " + title + ext
+            renames.append((folder, basename, newfilename))
+
         else:
-            nobrackets = re.sub("\\[+.\\]+", "", filename)
-            os.rename(f, nobrackets)
+            nobrackets = re.sub("\[([^\]]+)\]?", "", filename)
+            renames.append((folder, basename, nobrackets + ext))
 
-            artist, title = nobrackets.rsplit(" - ", 1)
-
-            if audiofile is None:
-                raise ValueError(f"{f} has no info")
+            try:
+                artist, title = nobrackets.rsplit(" - ", 1)
+            except ValueError as exc:
+                raise ValueError(f"Filename has bad format: {f}") from exc
 
             _, bitrate = audiofile.info.bit_rate
             if bitrate < 320:
@@ -39,7 +43,19 @@ def main():
 
             audiofile.tag.artist = artist
             audiofile.tag.title = title
-            print("Save", artist, "-", title, audiofile.tag.genre)
+            print("Save", artist, "-", title, f"(Genre: {audiofile.tag.genre})")
             audiofile.tag.save()
 
-    print("\n".join(errors))
+    if errors:
+        print("\n".join(errors))
+        sys.exit(1)
+
+    print("\n - ".join(f"{s}\n   {d}" for _, s, d in renames))
+    answer = ""
+    while answer.lower() not in ("y", "n"):
+        answer = input("Proceed? Y/n")
+        if answer.lower() == "n":
+            sys.exit(0)
+
+    for folder, s, d in renames:
+        os.rename(os.path.join(folder, s), os.path.join(folder, d))
