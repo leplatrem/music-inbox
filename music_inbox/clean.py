@@ -19,7 +19,7 @@ def main():
         if audiofile is None:
             raise ValueError(f"{f} has no info")
 
-        if audiofile.tag.encoded_by == "Beatport":
+        if audiofile.tag.encoded_by.lower() == "beatport":
             artist = audiofile.tag.artist
             title = audiofile.tag.title
             newfilename = artist + " - " + title + ext
