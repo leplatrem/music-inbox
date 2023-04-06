@@ -26,7 +26,7 @@ def main():
             renames.append((folder, basename, newfilename))
 
         else:
-            nobrackets = re.sub("\[([^\]]+)\]?", "", filename)
+            nobrackets = re.sub("\s+?\[([^\]]+)\]?", "", filename)
             renames.append((folder, basename, nobrackets + ext))
 
             try:
@@ -41,8 +41,8 @@ def main():
                 errors.append(f"{f} has bitrate {bitrate}")
                 continue
 
-            audiofile.tag.artist = artist
-            audiofile.tag.title = title
+            audiofile.tag.artist = artist.strip()
+            audiofile.tag.title = title.strip()
             print("Save", artist, "-", title, f"(Genre: {audiofile.tag.genre})")
             audiofile.tag.save()
 
