@@ -1,12 +1,13 @@
 import asyncio
 import glob
-import re
+import json
 import os
-import sys
-
+import shutil
+from pathlib import Path
 import aiohttp
 import eyed3
 from bs4 import BeautifulSoup
+import typer
 
 
 class Beatport:
@@ -24,18 +25,20 @@ class Beatport:
     async def search(self, session, keywords):
         html = await self.fetch(session, keywords)
         print("Fetch page for", keywords)
-        soup = BeautifulSoup(html, "html.parser")
-        songs = soup.select(".bucket.tracks .buk-track-meta-parent")
+        soup = BeautifulSoup(html, features="html.parser")
+        page_data = json.loads(soup.select("script#__NEXT_DATA__")[0].string)
+
+        queries_results = [
+            q["state"]["data"]["tracks"]["data"]
+            for q in page_data["props"]["pageProps"]["dehydratedState"]["queries"]
+        ]
         songs_genres = []
-        for song in songs:
-            artists_links = song.select("p.buk-track-artists a")
-            artists = [link.string.strip() for link in artists_links]
-            title_span = song.select("span.buk-track-primary-title")
-            title = title_span[0].string.strip()
-            genre_links = song.select("p.buk-track-genre a")
-            genres = set(link.string for link in genre_links)
+        for song in queries_results[0][:5]:
+            artists = [a["artist_name"] for a in song["artists"]]
+            title = song["track_name"]
+            genres = [g["genre_name"] for g in song["genre"]]
             songs_genres.append((", ".join(artists), title, tuple(genres)))
-        return set(songs_genres)
+        return songs_genres
 
 
 async def search(session, keywords):
@@ -47,10 +50,12 @@ async def search(session, keywords):
 
 async def search_all(songs):
     async with aiohttp.ClientSession() as session:
-        futures = [search(session, f"{artist} {title}") for (artist, title) in songs]
+        futures = [
+            search(session, f"{artist} {title}") for (_, (artist, title)) in songs
+        ]
         results = await asyncio.gather(*futures)
 
-    for (artist, title), results in zip(songs, results):
+    for (filename, (artist, title)), results in zip(songs, results):
         print(f" - {artist} - {title}")
         for result in results:
             provider, found_songs = result
@@ -61,14 +66,27 @@ async def search_all(songs):
                 found_songs = match
             print(f"   {provider.name}")
             for bt_artists, bt_title, genres in found_songs:
-                genres = ", ".join(genres)
-                print(f"    - {bt_artists} - {bt_title}: \033[1m{genres}\033[0m")
+                genreslist = ", ".join(genres)
+                print(f"    - {bt_artists} - {bt_title}: \033[1m{genreslist}\033[0m")
+                if bt_artists == artist and bt_title == title:
+                    os.makedirs(genres[0], exist_ok=True)
+                    shutil.move(filename, os.path.join(genres[0], filename))
+                    break
 
 
-def main():
+def main(files: list[Path]):
+    actual_files = []
+    for path in files:
+        if path.is_dir():
+            for f in glob.glob(str(path / "*.mp3")):
+                actual_files.append(Path(f))
+        elif path.name.endswith(".mp3"):
+            actual_files.append(path)
+
     songs = []
-    for f in glob.glob(sys.argv[1]):
-        folder = os.path.dirname(f)
+
+    for file in actual_files:
+        f = str(file)
         basename = os.path.basename(f)
         filename, ext = os.path.splitext(basename)
 
@@ -77,6 +95,10 @@ def main():
             song = (audiofile.tag.artist.strip(), audiofile.tag.title.strip())
         else:
             song = filename.rsplit("-", 1)
-        songs.append(song)
+        songs.append((basename, song))
 
-    asyncio.run(search_all(songs))
+    asyncio.run(search_all(sorted(songs)))
+
+
+if __name__ == "__main__":
+    typer.run(main)

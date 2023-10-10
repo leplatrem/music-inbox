@@ -1,14 +1,16 @@
+import logging
 import os
-import sys
+from pathlib import Path
 
 import eyed3
+import typer
 
 
-def main():
-    rootdir = sys.argv[1]
+def main(path: Path):
+    logging.getLogger("eyed3").setLevel(logging.ERROR)
 
     audios = []
-    for root, dirs, files in os.walk(rootdir):
+    for root, dirs, files in os.walk(str(path)):
         leaf = os.path.basename(root)
         if leaf.startswith("_"):
             continue
@@ -27,3 +29,7 @@ def main():
                 audiofile.tag.save()
         except Exception as e:
             print(f, e)
+
+
+if __name__ == "__main__":
+    typer.run(main)
