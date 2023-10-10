@@ -8,9 +8,9 @@ readme = "README.md"
 packages = [{include = "music_inbox"}]
 
 [tool.poetry.dependencies]
-python = ">3.10"
+python = ">3.10,<4"
 aiohttp = "^3.8.4"
-beautifulsoup4 = "^4.11.2"
+beautifulsoup4 = "^4.12.0"
 eyed3 = "^0.9.7"
 
 

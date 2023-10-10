@@ -9,7 +9,7 @@ import eyed3
 def main():
     renames = []
     errors = []
-    files = glob.glob(sys.argv[1])
+    files = glob.glob(sys.argv[-1])
     for f in files:
         folder = os.path.dirname(f)
         basename = os.path.basename(f)
@@ -26,8 +26,9 @@ def main():
             renames.append((folder, basename, newfilename))
 
         else:
-            nobrackets = re.sub("\[([^\]]+)\]?", "", filename)
-            renames.append((folder, basename, nobrackets + ext))
+            nobrackets = re.sub("\s?\[([^\]]+)\]?", "", filename)
+            if nobrackets != filename:
+                renames.append((folder, basename, nobrackets + ext))
 
             try:
                 artist, title = nobrackets.rsplit(" - ", 1)
@@ -41,21 +42,28 @@ def main():
                 errors.append(f"{f} has bitrate {bitrate}")
                 continue
 
-            audiofile.tag.artist = artist
-            audiofile.tag.title = title
-            print("Save", artist, "-", title, f"(Genre: {audiofile.tag.genre})")
-            audiofile.tag.save()
+            dirty = False
+            if audiofile.tag.artist != artist:
+                audiofile.tag.artist = artist
+                dirty = True
+            if audiofile.tag.title != title:
+                audiofile.tag.title = title
+                dirty = True
+            if dirty:
+                print("Save", artist, "-", title, f"(Genre: {audiofile.tag.genre})")
+                audiofile.tag.save()
 
     if errors:
         print("\n".join(errors))
         sys.exit(1)
 
-    print("\n - ".join(f"{s}\n   {d}" for _, s, d in renames))
-    answer = ""
-    while answer.lower() not in ("y", "n"):
-        answer = input("Proceed? Y/n")
-        if answer.lower() == "n":
-            sys.exit(0)
+    if renames:
+        print("\n - ".join(f"{s}\n   {d}" for _, s, d in renames))
+        answer = ""
+        while answer.lower() not in ("y", "n"):
+            answer = input("Proceed? Y/n ")
+            if answer.lower() == "n":
+                sys.exit(0)
 
     for folder, s, d in renames:
         os.rename(os.path.join(folder, s), os.path.join(folder, d))
