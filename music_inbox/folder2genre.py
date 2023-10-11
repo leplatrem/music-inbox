@@ -6,7 +6,7 @@ import eyed3
 
 
 def main():
-    rootdir = sys.argv[1]
+    rootdir = sys.argv[-1]
     
     logging.getLogger("eyed3").setLevel(logging.ERROR)
 

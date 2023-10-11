@@ -70,7 +70,7 @@ async def search_all(songs):
 
 def main():
     songs = []
-    for f in glob.glob(sys.argv[1]):
+    for f in glob.glob(sys.argv[-1]):
         folder = os.path.dirname(f)
         basename = os.path.basename(f)
         filename, ext = os.path.splitext(basename)

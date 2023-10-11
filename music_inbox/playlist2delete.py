@@ -3,7 +3,7 @@ import sys
 
 
 def main():
-    with open(sys.argv[1]) as f:
+    with open(sys.argv[-1]) as f:
         lines = f.readlines()
 
     def question(q):
