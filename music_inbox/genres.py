@@ -1,5 +1,6 @@
 import asyncio
 import glob
+import json
 import re
 import os
 import sys
@@ -24,18 +25,20 @@ class Beatport:
     async def search(self, session, keywords):
         html = await self.fetch(session, keywords)
         print("Fetch page for", keywords)
-        soup = BeautifulSoup(html, "html.parser")
-        songs = soup.select(".bucket.tracks .buk-track-meta-parent")
+        soup = BeautifulSoup(html, features="html.parser")
+        page_data = json.loads(soup.select("script#__NEXT_DATA__")[0].string)
+        
+        queries_results = [
+            q["state"]["data"]["tracks"]["data"]
+            for q in page_data["props"]["pageProps"]["dehydratedState"]["queries"]
+        ]
         songs_genres = []
-        for song in songs:
-            artists_links = song.select("p.buk-track-artists a")
-            artists = [link.string.strip() for link in artists_links]
-            title_span = song.select("span.buk-track-primary-title")
-            title = title_span[0].string.strip()
-            genre_links = song.select("p.buk-track-genre a")
-            genres = set(link.string for link in genre_links)
+        for song in queries_results[0][:5]:
+            artists = [a["artist_name"] for a in song["artists"]]
+            title = song["track_name"]
+            genres = [g["genre_name"] for g in song["genre"]]
             songs_genres.append((", ".join(artists), title, tuple(genres)))
-        return set(songs_genres)
+        return songs_genres
 
 
 async def search(session, keywords):
