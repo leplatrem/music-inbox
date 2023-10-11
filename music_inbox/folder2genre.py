@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -6,6 +7,8 @@ import eyed3
 
 def main():
     rootdir = sys.argv[1]
+    
+    logging.getLogger("eyed3").setLevel(logging.ERROR)
 
     audios = []
     for root, dirs, files in os.walk(rootdir):
