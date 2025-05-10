@@ -15,15 +15,18 @@ def main():
         basename = os.path.basename(f)
         filename, ext = os.path.splitext(basename)
 
+        import time; time.sleep(0.5)
         audiofile = eyed3.load(f)
         if audiofile is None:
             raise ValueError(f"{f} has no info")
 
-        if audiofile.tag.encoded_by == "Beatport":
-            artist = audiofile.tag.artist
-            title = audiofile.tag.title
+        if audiofile.tag.encoded_by == "Beatport" or audiofile.tag.artist not in ("", None):
+            artist = re.sub(r'\s?[/&]\s?', ", ", audiofile.tag.artist)
+            title = audiofile.tag.title or ""
             newfilename = artist + " - " + title + ext
-            renames.append((folder, basename, newfilename))
+            newfilename = re.sub(r'\s?[\'<>:"/\\|?*\]\[]\s?', " ", newfilename)
+            if basename != newfilename:
+                renames.append((folder, basename, newfilename))
 
         else:
             nobrackets = re.sub("\s?\[([^\]]+)\]?", "", filename)
@@ -43,10 +46,10 @@ def main():
                 continue
 
             dirty = False
-            if audiofile.tag.artist != artist:
+            if not audiofile.tag.artist or (artist and audiofile.tag.artist != artist):
                 audiofile.tag.artist = artist
                 dirty = True
-            if audiofile.tag.title != title:
+            if not audiofile.tag.title or (title and audiofile.tag.title != title):
                 audiofile.tag.title = title
                 dirty = True
             if dirty:

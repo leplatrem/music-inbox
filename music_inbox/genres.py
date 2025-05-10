@@ -75,11 +75,12 @@ def main():
         basename = os.path.basename(f)
         filename, ext = os.path.splitext(basename)
 
+        print(f)
         audiofile = eyed3.load(f)
         if audiofile.tag and audiofile.tag.artist:
             song = (audiofile.tag.artist.strip(), audiofile.tag.title.strip())
         else:
             song = filename.rsplit("-", 1)
-        songs.append(song)
+        # songs.append(song)
 
     asyncio.run(search_all(songs))

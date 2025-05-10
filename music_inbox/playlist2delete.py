@@ -14,4 +14,8 @@ def main():
         if not line or line.startswith("#"):
             continue
         if question(f"Are you sure to delete {line}? "):
-            os.remove(line)
+            try:
+                os.remove(line)
+            except FileNotFoundError as e:
+                print(e)
+
