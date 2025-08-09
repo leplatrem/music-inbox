@@ -2,31 +2,55 @@ import os
 import glob
 import re
 import sys
+import time
+from pathlib import Path
 
 import eyed3
+import typer
+
+app = typer.Typer()
 
 
-def main():
+@app.command()
+def main(files: list[Path]):
+    """
+    Normalize filenames and artist / title on FILES.
+    """
+    actual_files = []
+    for path in files:
+        if path.is_dir():
+            for f in glob.glob(str(path / "*.mp3")):
+                actual_files.append(Path(f))
+        elif path.name.endswith(".mp3"):
+            actual_files.append(path)
+
     renames = []
     errors = []
-    files = glob.glob(sys.argv[-1])
-    for f in files:
+    for file in actual_files:
+        f = str(file)
         folder = os.path.dirname(f)
         basename = os.path.basename(f)
         filename, ext = os.path.splitext(basename)
 
+        # This prevents some ID3 errors?!
+        time.sleep(0.5)
         audiofile = eyed3.load(f)
         if audiofile is None:
             raise ValueError(f"{f} has no info")
 
-        if audiofile.tag.encoded_by.lower() == "beatport":
-            artist = audiofile.tag.artist
-            title = audiofile.tag.title
+        if audiofile.tag.encoded_by == "Beatport" or audiofile.tag.artist not in (
+            "",
+            None,
+        ):
+            artist = re.sub(r"\s?[/&]\s?", ", ", audiofile.tag.artist)
+            title = audiofile.tag.title or ""
             newfilename = artist + " - " + title + ext
-            renames.append((folder, basename, newfilename))
+            newfilename = re.sub(r'\s?[\'<>:"/\\|?*\]\[]\s?', " ", newfilename)
+            if basename != newfilename:
+                renames.append((folder, basename, newfilename))
 
         else:
-            nobrackets = re.sub("\s+?\[([^\]]+)\]?", "", filename)
+            nobrackets = re.sub(r"\s?\[([^\]]+)\]?", "", filename)
             if nobrackets != filename:
                 renames.append((folder, basename, nobrackets + ext))
 
@@ -43,12 +67,10 @@ def main():
                 continue
 
             dirty = False
-            artist = artist.strip()
-            title = title.strip()
-            if audiofile.tag.artist != artist:
+            if not audiofile.tag.artist or (artist and audiofile.tag.artist != artist):
                 audiofile.tag.artist = artist
                 dirty = True
-            if audiofile.tag.title != title:
+            if not audiofile.tag.title or (title and audiofile.tag.title != title):
                 audiofile.tag.title = title
                 dirty = True
             if dirty:
@@ -69,3 +91,7 @@ def main():
 
     for folder, s, d in renames:
         os.rename(os.path.join(folder, s), os.path.join(folder, d))
+
+
+if __name__ == "__main__":
+    app()

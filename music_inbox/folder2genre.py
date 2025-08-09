@@ -1,17 +1,24 @@
 import logging
 import os
-import sys
+from pathlib import Path
 
 import eyed3
+import typer
+
+app = typer.Typer()
 
 
-def main():
-    rootdir = sys.argv[-1]
-    
+@app.command()
+def main(path: Path):
+    """
+    Set the `Genre` tag on files recursively from PATH.
+
+    Containing folder name is used as genre.
+    """
     logging.getLogger("eyed3").setLevel(logging.ERROR)
 
     audios = []
-    for root, dirs, files in os.walk(rootdir):
+    for root, dirs, files in os.walk(str(path)):
         leaf = os.path.basename(root)
         if leaf.startswith("_"):
             continue
@@ -30,3 +37,7 @@ def main():
                 audiofile.tag.save()
         except Exception as e:
             print(f, e)
+
+
+if __name__ == "__main__":
+    app()

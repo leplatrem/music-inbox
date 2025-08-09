@@ -1,9 +1,16 @@
 import os
-import sys
+from pathlib import Path
+import typer
+
+app = typer.Typer()
 
 
-def main():
-    with open(sys.argv[-1]) as f:
+@app.command()
+def main(path: Path):
+    """
+    Delete all files from specified playlist at PATH.
+    """
+    with open(str(path)) as f:
         lines = f.readlines()
 
     def question(q):
@@ -14,4 +21,11 @@ def main():
         if not line or line.startswith("#"):
             continue
         if question(f"Are you sure to delete {line}? "):
-            os.remove(line)
+            try:
+                os.remove(line)
+            except FileNotFoundError as e:
+                print(e)
+
+
+if __name__ == "__main__":
+    app()
