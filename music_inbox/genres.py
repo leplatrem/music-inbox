@@ -1,8 +1,6 @@
 import asyncio
 import glob
 import json
-import os
-import shutil
 from pathlib import Path
 import aiohttp
 import eyed3
@@ -54,7 +52,7 @@ async def search_all(songs):
         ]
         results = await asyncio.gather(*futures)
 
-    for (filename, (artist, title)), results in zip(songs, results):
+    for (path, (artist, title)), results in zip(songs, results):
         print(f" - {artist} - {title}")
         for result in results:
             provider, found_songs = result
@@ -68,9 +66,10 @@ async def search_all(songs):
                 genreslist = ", ".join(genres)
                 print(f"    - {bt_artists} - {bt_title}: \033[1m{genreslist}\033[0m")
                 if bt_artists == artist and bt_title == title:
-                    folder = genres[0].replace("/", "-")
-                    os.makedirs(folder, exist_ok=True)
-                    shutil.move(filename, os.path.join(folder, filename))
+                    folder = path.parent / genres[0].replace("/", "-")
+                    folder.mkdir(exist_ok=True, parents=True)
+                    destination = folder / path.name
+                    path.rename(destination)
                     break
 
 
@@ -92,17 +91,15 @@ def main(files: list[Path]):
 
     songs = []
 
-    for file in actual_files:
-        f = str(file)
-        basename = os.path.basename(f)
-        filename, ext = os.path.splitext(basename)
+    for path in actual_files:
+        f = str(path)
 
         audiofile = eyed3.load(f)
         if audiofile.tag and audiofile.tag.artist:
             song = (audiofile.tag.artist.strip(), audiofile.tag.title.strip())
         else:
-            song = filename.rsplit("-", 1)
-        songs.append((basename, song))
+            song = path.stem.rsplit("-", 1)
+        songs.append((path, song))
 
     asyncio.run(search_all(sorted(songs)))
 
