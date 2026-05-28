@@ -38,6 +38,10 @@ def main(files: list[Path]):
         if audiofile is None:
             raise ValueError(f"{f} has no info")
 
+        if audiofile.tag is None:
+            print(f"⚠️  {f} has no tags")
+            continue
+
         if audiofile.tag.encoded_by == "Beatport" or audiofile.tag.artist not in (
             "",
             None,

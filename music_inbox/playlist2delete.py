@@ -20,6 +20,12 @@ def main(path: Path):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
+        if not os.path.isfile(line):
+            print(f"⚠️  {line} is not a file")
+            continue
+        if not os.path.exists(line):
+            print(f"⚠️  {line} does not exist")
+            continue
         if question(f"Are you sure to delete {line}? "):
             try:
                 os.remove(line)
